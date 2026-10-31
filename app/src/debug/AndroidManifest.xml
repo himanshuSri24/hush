@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Debug builds only: lets scripts/device-test.sh drive Hush over adb. -->
+        <receiver android:name=".DebugReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="hush.test.START" />
+                <action android:name="hush.test.STOP" />
+                <action android:name="hush.test.VIP" />
+                <action android:name="hush.test.ALLOW" />
+                <action android:name="hush.test.RESET" />
+                <action android:name="hush.test.DUMP" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
