@@ -61,7 +61,7 @@ schedule such as *weekdays 1:30–2:15 PM* or *every night*.
 
 ## Install
 
-1. Download `Hush-1.0.apk` from [Releases](https://github.com/himanshuSri24/hush/releases/latest) and install it.
+1. Download the latest `Hush-*.apk` from [Releases](https://github.com/himanshuSri24/hush/releases/latest) and install it.
 2. Open Hush. The **Setup** tab lists each permission with a one-tap **Allow**:
    notification access, Do Not Disturb access, phone, contacts, notifications, full-screen alerts, and battery.
 3. Add your people on the **Allowed** tab (pick a contact, import your starred contacts, or type a number).
