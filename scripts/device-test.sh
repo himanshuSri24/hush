@@ -6,7 +6,7 @@
 #   cd Hush && ./gradlew assembleDebug && bash scripts/device-test.sh
 set -u
 cd "$(dirname "$0")/.."
-A=${ADB:-/d/androidSDK/platform-tools/adb}
+A=${ADB:-adb}
 PKG=com.devwithcoffee.hush.debug
 RCV=$PKG/com.devwithcoffee.hush.DebugReceiver
 APK=app/build/outputs/apk/debug/app-debug.apk
