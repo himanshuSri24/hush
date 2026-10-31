@@ -147,7 +147,7 @@ fun SetupScreen(tick: Int) {
         SectionTitle("Try it", "Plays exactly what you'll hear when someone gets through")
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedButton(onClick = {
-                Alerter.alert(ctx, Kind.MESSAGE, "Test message", "Hush", Reason.VIP, null, null)
+                Alerter.alert(ctx, Kind.MESSAGE, "Test message", "Hush", Reason.VIP, null, null, force = true)
             }, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Rounded.ChatBubble, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Message")
             }

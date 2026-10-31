@@ -35,7 +35,7 @@ object Alerter {
 
     private val main = Handler(Looper.getMainLooper())
     private val active = LinkedHashMap<Int, Active>()
-    private val lastAlert = HashMap<String, Long>()
+    private val throttle = com.devwithcoffee.hush.core.Throttle(THROTTLE_MS)
     private var nextId = 1
     private var wakeLock: PowerManager.WakeLock? = null
 
@@ -52,17 +52,14 @@ object Alerter {
     /** Returns the alert id. [sourceKey] ties a ringing call to the notification that started it. */
     fun alert(
         ctx: Context, kind: Kind, who: String, appLabel: String, reason: Reason,
-        sourceKey: String?, original: PendingIntent?,
+        sourceKey: String?, original: PendingIntent?, force: Boolean = false,
     ): Int = synchronized(this) {
         val app = ctx.applicationContext
         // Same call notification re-posted (WhatsApp updates it every second) -> already ringing.
         if (sourceKey != null) active.values.firstOrNull { it.sourceKey == sourceKey }?.let { return it.id }
 
         val id = nextId++
-        val throttleKey = "$appLabel|$who|$kind"
-        val now = System.currentTimeMillis()
-        val quiet = kind != Kind.CALL && (lastAlert[throttleKey]?.let { now - it < THROTTLE_MS } ?: false)
-        lastAlert[throttleKey] = now
+        val quiet = kind != Kind.CALL && !force && !throttle.allow("$appLabel|$who|$kind", System.currentTimeMillis())
 
         var ringtone: Ringtone? = null
         if (!quiet) {

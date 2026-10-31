@@ -166,3 +166,25 @@ class RulesTest {
         assertNull(Schedules.nextStart(listOf(off), LocalDateTime.of(2026, 11, 4, 9, 0)))
     }
 }
+
+class ThrottleTest {
+    @Test fun firstAlertSoundsRepeatWithinWindowDoesNot() {
+        val th = Throttle(8_000)
+        org.junit.Assert.assertTrue(th.allow("wa|Mom|MESSAGE", 0))
+        org.junit.Assert.assertFalse(th.allow("wa|Mom|MESSAGE", 3_000))
+    }
+
+    @Test fun suppressedAlertsDoNotExtendTheWindow() {
+        // The 1.0 bug: tapping every few seconds kept the chime silent forever.
+        val th = Throttle(8_000)
+        th.allow("k", 0)
+        th.allow("k", 5_000)          // suppressed
+        org.junit.Assert.assertTrue(th.allow("k", 8_500))
+    }
+
+    @Test fun differentSendersAreIndependent() {
+        val th = Throttle(8_000)
+        th.allow("wa|Mom|MESSAGE", 0)
+        org.junit.Assert.assertTrue(th.allow("wa|Arjun|MESSAGE", 100))
+    }
+}
