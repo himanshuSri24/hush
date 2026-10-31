@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hush — Launch film</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+/* Hush launch film. 1920x1080, 60fps, 30s, 120 BPM grid (cuts on x.0 / x.5).
+   render(t) is a pure function of time. Persistent actors: the phone, and the amber dot
+   (the one thing that gets through). */
+:root{
+  --paper:#F5F4FA; --ink:#12131A; --ink2:#454959; --muted:#7D8296; --line:#E3E2EE;
+  --moon:#5B67E8; --moonPale:#E6E8FD; --amber:#F2994A; --amberDeep:#D9761C; --amberPale:#FFF0E0;
+  --dbg:#0D1017; --dsurf:#161B25; --dhi:#1E2433; --dline:#2A3142; --dtext:#E8EAF2; --dmuted:#8B93A7; --dmoon:#9AA8FF;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#000;overflow:hidden}
+#stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:var(--paper);font-family:Inter,sans-serif;-webkit-font-smoothing:antialiased}
+body.fit #stage{transform:scale(var(--fit,1));transform-origin:0 0}
+.sc{position:absolute;inset:0;visibility:hidden}
+.abs{position:absolute;left:0;top:0}
+.big{font-weight:700;letter-spacing:-.045em;color:var(--ink);line-height:1.0}
+.kick{font-weight:600;font-size:22px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+.a{color:var(--amberDeep)} .m{color:var(--moon)}
+.w{display:inline-block;will-change:transform}
+/* phone */
+#phone{position:absolute;left:0;top:0;width:440px;height:900px;border-radius:64px;background:#0A0B0F;padding:12px;
+  box-shadow:0 60px 120px -40px rgba(30,30,70,.55),0 0 0 2px #2A2C36 inset;transform-origin:50% 50%;z-index:10}
+.screen{position:relative;width:100%;height:100%;border-radius:52px;overflow:hidden;background:var(--dbg);color:var(--dtext)}
+.island{position:absolute;left:50%;top:14px;width:104px;height:30px;margin-left:-52px;border-radius:99px;background:#000;z-index:30}
+.sb{position:absolute;left:0;right:0;top:0;height:58px;padding:18px 34px 0;display:flex;justify-content:space-between;font-weight:600;font-size:17px;color:var(--dtext);z-index:25}
+.layer{position:absolute;inset:0;padding:70px 20px 0;visibility:hidden}
+/* notification (dark, Android-ish) */
+.nt{position:relative;background:var(--dsurf);border:1px solid var(--dline);border-radius:22px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.ic{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-weight:700;font-size:17px;color:#fff}
+.nt .ap{font-size:12px;color:var(--dmuted);font-weight:500}
+.nt .ti{font-size:16px;font-weight:600;margin-top:2px;white-space:nowrap}
+.nt .tx{font-size:14px;color:var(--dmuted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+.mute{position:absolute;right:14px;top:14px;width:22px;height:22px;opacity:0}
+/* app chrome */
+.h1{font-size:30px;font-weight:600;letter-spacing:-.02em;margin:14px 6px 2px}
+.sub{font-size:14px;color:var(--dmuted);margin:0 6px 10px}
+.sec{font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--dmuted);margin:16px 6px 8px}
+.panel{background:var(--dsurf);border:1px solid var(--dline);border-radius:20px;padding:6px 14px}
+.prow{display:flex;align-items:center;gap:12px;height:56px;border-bottom:1px solid var(--dline)}
+.prow:last-child{border-bottom:0}
+.prow .n{font-size:16px;font-weight:500;flex:1}
+.prow .x{color:var(--dmuted);font-size:18px}
+.av{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px}
+.sw{width:46px;height:28px;border-radius:99px;background:var(--dhi);position:relative}
+.sw i{position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:50%;background:var(--dmuted)}
+.chip{display:grid;place-items:center;height:46px;border-radius:99px;background:var(--dsurf);font-weight:600;font-size:16px}
+.pillD{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600}
+/* touch */
+.touch{position:absolute;left:0;top:0;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(255,255,255,.55);z-index:28;opacity:0}
+/* light-stage cards */
+.card{position:absolute;left:0;top:0;background:#fff;border-radius:28px;box-shadow:0 24px 60px -24px rgba(30,30,70,.30),0 0 0 1px rgba(20,20,60,.05)}
+.lnt{position:absolute;left:0;top:0;width:520px;height:96px;background:#fff;border-radius:24px;display:flex;align-items:center;gap:16px;padding:0 22px;
+  box-shadow:0 20px 50px -22px rgba(30,30,70,.35),0 0 0 1px rgba(20,20,60,.05)}
+.lnt .ic{width:52px;height:52px;border-radius:14px;font-size:22px}
+.lnt .ti{font-weight:700;font-size:22px;color:var(--ink);white-space:nowrap}
+.lnt .tx{font-weight:500;font-size:18px;color:var(--muted);white-space:nowrap;margin-top:2px}
+.dot{position:absolute;left:0;top:0;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:var(--amber);z-index:40}
+.tile{position:absolute;left:0;top:0;width:410px;height:270px;background:#fff;border-radius:30px;padding:34px 34px;
+  box-shadow:0 24px 60px -26px rgba(30,30,70,.3),0 0 0 1px rgba(20,20,60,.05)}
+.tile .big{font-size:40px;letter-spacing:-.03em;line-height:1.08}
+.tile .s{font-weight:500;font-size:26px;color:var(--muted);margin-top:12px;line-height:1.35}
+.tile .k{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;margin-bottom:22px}
+#grain{position:absolute;inset:-100px;pointer-events:none;opacity:.022;mix-blend-mode:multiply;z-index:90;
+  background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E")}
+</style>
+</head>
+<body>
+<div id="stage"><div id="cam" style="position:absolute;inset:0;transform-origin:50% 50%">
+  <div class="sc" id="s1"></div><div class="sc" id="s2"></div><div class="sc" id="s3" style="background:#0B0C12"></div>
+  <div class="sc" id="s4"></div><div class="sc" id="s5"></div><div class="sc" id="s6"></div>
+  <div class="sc" id="s7"></div><div class="sc" id="s8"></div><div class="sc" id="s9"></div>
+  <div class="sc" id="s10"></div><div class="sc" id="s11"></div><div class="sc" id="s12"></div>
+  <div class="sc" id="s13"></div>
+  <div id="phone"><div class="screen" id="scr"><div class="island"></div>
+    <div class="sb"><span id="clock">2:01</span><span id="sbr" style="display:flex;gap:8px;align-items:center"></span></div>
+  </div></div>
+  <div class="dot" id="dot"></div>
+  </div><div id="grain"></div>
+</div>
+<script>
+const FPS=60, DURATION=30;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v, inv=(t,s,e)=>clamp((t-s)/(e-s),0,1), lerp=(a,b,p)=>a+(b-a)*p;
+const E={o3:p=>1-Math.pow(1-p,3),o4:p=>1-Math.pow(1-p,4),ox:p=>p>=1?1:1-Math.pow(2,-10*p),i3:p=>p*p*p,i2:p=>p*p,
+  io:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2, ss:p=>p*p*p*(p*(p*6-15)+10),
+  back:p=>{const c=1.7;return 1+(c+1)*Math.pow(p-1,3)+c*Math.pow(p-1,2)}};
+const $=id=>document.getElementById(id);
+const D=(cls,html,st)=>{const d=document.createElement("div");if(cls)d.className=cls;if(html!=null)d.innerHTML=html;if(st)d.setAttribute("style",st);return d};
+function S(el,p){el.style.opacity=p.o??1;el.style.transform=`translate(${p.x||0}px,${p.y||0}px) rotate(${p.r||0}deg) scale(${p.s??1})`;
+  el.style.filter=(p.b||0)>.05?`blur(${p.b.toFixed(1)}px)`:"none"}
+function scene(id,t,a,b){const el=$(id),on=t>=a&&t<b;el.style.visibility=on?"visible":"hidden";return on}
+function words(text,cls,style,parent){const el=D(cls,null,style);el.__w=text.split(" ").map(w=>{
+  if(w==="/"){el.appendChild(document.createElement("br"));return null}
+  const m=D("",null,"display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.12em;margin-bottom:-.12em;margin-right:.24em");
+  const s=D("w");if(w.startsWith("^")){s.className="w a";w=w.slice(1)}else if(w.startsWith("~")){s.className="w m";w=w.slice(1)}
+  s.innerHTML=w.replace(/_/g," ");m.appendChild(s);el.appendChild(m);return s}).filter(Boolean);parent.appendChild(el);return el}
+function rise(el,t,a,o={}){const st=o.stag??.05,d=o.dur??.45;el.__w.forEach((w,i)=>{const p=E.ox(inv(t,a+i*st,a+i*st+d));let y=(1-p)*110,op=p;
+  if(o.out!=null){const q=E.i3(inv(t,o.out+i*.015,o.out+i*.015+.22));y-=q*110;op*=1-q}w.style.transform=`translateY(${y}%)`;w.style.opacity=op})}
+/* icons */
+const MOON=(c="#9AA8FF",s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24"><path fill="${c}" d="M12.5 3A9 9 0 1 0 21 15 7 7 0 1 1 12.5 3Z"/></svg>`;
+const BELLX=`<svg viewBox="0 0 24 24" width="22" height="22"><path fill="#8B93A7" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2Z"/><path d="M3 3l18 18" stroke="#0D1017" stroke-width="4"/><path d="M3 3l18 18" stroke="#8B93A7" stroke-width="2"/></svg>`;
+const PHONE_I=(c="#fff",s=26)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}"><path fill="${c}" d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>`;
+const APPS={
+  ig:["I","linear-gradient(135deg,#F9A13A,#E4405F 50%,#8A3AB9)","Instagram"], sw:["S","#FC8019","Swiggy"], li:["in","#0A66C2","LinkedIn"],
+  am:["a","#232F3E","Amazon"], wa:["W","#25D366","WhatsApp"], sl:["S","#4A154B","Slack"], te:["T","#5059C9","Teams"], ou:["O","#0F6CBD","Outlook"],
+  ms:["M","#1A73E8","Messages"], ph:["☎","#34A853","Phone"],
+};
+const ic=(k,st="")=>`<div class="ic" style="background:${APPS[k][1]};${st}">${APPS[k][0]}</div>`;
+const nt=(k,title,text,extra="")=>`<div class="nt" ${extra}>${ic(k)}<div><div class="ap">${APPS[k][2]} · now</div><div class="ti">${title}</div><div class="tx">${text}</div></div><div class="mute">${BELLX}</div></div>`;
+
+/* ---------------- build ---------------- */
+const B={};
+(function build(){
+  const scr=$("scr");
+  const L=(id,html)=>{const d=D("layer",html);d.id=id;scr.appendChild(d);return d};
+  // lock screen with noise
+  B.lock=L("Llock",`<div style="text-align:center;margin:30px 0 26px"><div style="font-size:84px;font-weight:300;letter-spacing:-.04em">2:01</div><div style="color:#8B93A7;font-size:17px">Tuesday, 4 November</div></div>
+    <div id="lockN">${[
+      nt("ig","rahul.k liked your reel","and 41 others"),
+      nt("sw","Your cravings called","Flat 50% off till 3 PM"),
+      nt("wa","Family (137 messages)","Chachi: good afternoon ji 🌸"),
+      nt("li","You appeared in 9 searches","See who's looking"),
+      nt("am","Great Indian Sale is LIVE","Up to 80% off"),
+    ].join("")}</div>`);
+  B.lockN=[...B.lock.querySelectorAll(".nt")];
+  // missed calls
+  B.miss=L("Lmiss",`<div style="text-align:center;margin:30px 0 26px"><div style="font-size:84px;font-weight:300;letter-spacing:-.04em">2:31</div><div style="color:#8B93A7;font-size:17px">Do Not Disturb was on</div></div>
+    ${[["2:04"],["2:06"],["2:09"],["2:15"]].map(([tm])=>`<div class="nt">${ic("ph")}<div><div class="ap">Phone · ${tm} PM</div><div class="ti">Mom ★</div><div class="tx">Missed call</div></div></div>`).join("")}`);
+  B.missN=[...B.miss.querySelectorAll(".nt")];
+  // allowed screen
+  const appRow=(k)=>`<div class="prow">${ic(k,"width:38px;height:38px;border-radius:11px")}<div class="n">${APPS[k][2]}</div><div class="x">✕</div></div>`;
+  B.allow=L("Lallow",`<div class="h1">Allowed</div><div class="sub">These always reach you.</div>
+    <div class="sec">PEOPLE</div><div class="panel" id="ppl">
+      <div class="prow" id="pMom"><div class="av" style="background:#3A2C1C;color:#FFB86B">M</div><div class="n">Mom</div><div class="x">✕</div></div>
+      <div class="prow" id="pMgr"><div class="av" style="background:#2A3160;color:#9AA8FF">AK</div><div class="n">Arjun (manager)</div><div class="x">✕</div></div>
+    </div>
+    <div class="sec">APPS</div><div class="panel" id="apps">${appRow("sl")}${appRow("te")}${appRow("ou")}</div>
+    <div class="sec">ALSO LET THROUGH</div><div class="panel"><div class="prow"><div style="font-size:20px;color:#9AA8FF;width:38px;text-align:center">↻</div><div class="n">Repeat callers<div style="font-size:12px;color:#8B93A7">Called twice within 15 min</div></div><div class="sw" id="rsw"><i></i></div></div></div>`);
+  B.pRows=[$("pMom"),$("pMgr")]; B.aRows=[...B.allow.querySelectorAll("#apps .prow")];
+  // now screen
+  B.now=L("Lnow",`<div class="h1" style="display:flex;justify-content:space-between;align-items:center">Hush<span id="onPill" class="pillD" style="background:#9AA8FF;color:#0D1017;opacity:0">ON</span></div>
+    <div class="sub" id="nowSub">Good afternoon. Nap time?</div>
+    <div style="position:relative;width:300px;height:300px;margin:26px auto 0" id="ringBox">
+      <svg width="300" height="300" style="position:absolute;inset:0"><defs><radialGradient id="rg"><stop offset="0" stop-color="#2A3160"/><stop offset="1" stop-color="#0D1017"/></radialGradient></defs>
+        <circle cx="150" cy="150" r="145" fill="url(#rg)"/><circle cx="150" cy="150" r="140" fill="none" stroke="#1E2433" stroke-width="10"/>
+        <circle id="arc" cx="150" cy="150" r="140" fill="none" stroke="#9AA8FF" stroke-width="10" stroke-linecap="round" stroke-dasharray="879.6" stroke-dashoffset="879.6" transform="rotate(-90 150 150)"/></svg>
+      <div id="ringOff" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center"><div>${MOON("#9AA8FF",58)}<div style="font-size:22px;font-weight:600;margin-top:8px">Tap to hush</div></div></div>
+      <div id="ringOn" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;opacity:0"><div><div id="mins" style="font-size:72px;font-weight:300;line-height:1">60</div><div style="color:#8B93A7;font-size:16px">min left</div><div style="color:#9AA8FF;font-size:15px;font-weight:600;margin-top:4px">until 3:01 PM</div></div></div>
+    </div>
+    <div id="durs" style="display:flex;gap:8px;margin-top:30px">${["30m","1h","2h","∞"].map((l,i)=>`<div class="chip" style="flex:1" id="d${i}">${l}</div>`).join("")}</div>
+    <div id="stats" style="display:flex;gap:8px;margin-top:30px;opacity:0">${[["Held","#9AA8FF","held"],["Got through","#FFB86B","thr"],["Apps","#8B93A7","apps"]].map(([l,c,id])=>
+      `<div class="panel" style="flex:1;padding:12px 14px"><div id="st_${id}" style="font-size:30px;font-weight:300;color:${c}">0</div><div style="font-size:12px;color:#8B93A7">${l}</div></div>`).join("")}</div>
+    <div id="back" style="margin-top:14px;height:52px;border-radius:99px;background:#9AA8FF;color:#0D1017;display:grid;place-items:center;font-weight:700;font-size:17px;opacity:0">☀ I'm back</div>`);
+  // incoming (full-screen alert)
+  B.alert=L("Lalert",`<div style="position:absolute;inset:0;background:#0D1017"></div>
+    <div style="position:relative;text-align:center;padding-top:40px"><span class="pillD" style="background:#3A2C1C;color:#FFB86B;font-size:14px;padding:6px 14px">Got through Hush</span></div>
+    <div style="position:relative;height:260px;margin-top:70px">
+      <div id="aPulse" style="position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px;border-radius:50%;background:#FFB86B"></div>
+      <div id="aAv" style="position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px;border-radius:50%;background:#3A2C1C;color:#FFB86B;display:grid;place-items:center;font-size:64px;font-weight:600">M</div>
+    </div>
+    <div style="position:relative;text-align:center"><div id="aName" style="font-size:42px;font-weight:600">Mom</div><div id="aSub" style="color:#8B93A7;font-size:19px;margin-top:6px">is calling on WhatsApp</div><div id="aWhy" style="color:#FFB86B;font-size:16px;margin-top:14px">Always-allowed person</div></div>
+    <div style="position:absolute;left:24px;right:24px;bottom:56px;display:flex;gap:12px">
+      <div style="flex:1;height:60px;border-radius:99px;border:1px solid #2A3142;display:grid;place-items:center;font-weight:600">Silence</div>
+      <div id="aBtn" style="flex:1;height:60px;border-radius:99px;background:#FFB86B;color:#0D1017;display:grid;place-items:center;font-weight:700">Open WhatsApp</div></div>`);
+  // summary notification over now screen
+  B.sum=D("nt",`${`<div class="ic" style="background:#2A3160">${MOON("#9AA8FF",22)}</div>`}<div><div class="ap">Hush · now</div><div class="ti">Welcome back · 23 held from 5 apps</div><div class="tx" style="white-space:normal;max-width:300px;line-height:1.35">3 got through. Instagram 9 · Family 7 · Swiggy 4 · LinkedIn 2 · Amazon 1</div></div>`,
+    "position:absolute;left:14px;right:14px;top:62px;z-index:26;box-shadow:0 20px 40px -10px rgba(0,0,0,.6)");
+  scr.appendChild(B.sum);
+  B.touch=D("touch");scr.appendChild(B.touch);
+  B.sbr=$("sbr");
+
+  // ---- S1: headline
+  B.h1=words("Your phone, / all afternoon.","big","position:absolute;left:150px;top:300px;font-size:118px",$("s1"));
+  B.h1b=words("So you hit / ~Do_Not_Disturb.","big","position:absolute;left:150px;top:300px;font-size:118px",$("s1"));
+  // ---- S2
+  B.h2=words("She's starred. / ^Still_missed.","big","position:absolute;left:150px;top:330px;font-size:124px",$("s2"));
+  B.k2=D("kick","Built-in DND · starred contacts","position:absolute;left:156px;top:270px");$("s2").appendChild(B.k2);
+  // ---- S3 dead stop caption
+  B.c3=D("","4 missed calls. One nap.","position:absolute;left:0;right:0;top:600px;text-align:center;font-weight:600;font-size:64px;color:#fff;letter-spacing:-.01em");$("s3").appendChild(B.c3);
+  // ---- S4 logo
+  const lg=D("abs",`<svg width="300" height="300" viewBox="0 0 108 108" style="display:block"><path id="crescent" fill="#5B67E8" d="M58,32 A22,22 0 1,0 76,66 A18,18 0 1,1 58,32 Z"/></svg>`,"left:560px;top:300px");
+  $("s4").appendChild(lg);B.logo=lg;B.cres=lg.querySelector("#crescent");
+  B.word=words("Hush","big","position:absolute;left:880px;top:345px;font-size:200px;letter-spacing:-.06em",$("s4"));
+  B.tag=words("Silence everything. ^Except_who_matters.","","position:absolute;left:0;right:0;top:640px;text-align:center;font-weight:600;font-size:46px;letter-spacing:-.02em;color:#454959",$("s4"));
+  // ---- S5 make the rule
+  B.k5=D("kick","Step 1 · once","position:absolute;left:880px;top:300px");$("s5").appendChild(B.k5);
+  B.h5=words("Pick who / ^always gets through.","big","position:absolute;left:874px;top:350px;font-size:104px",$("s5"));
+  B.s5=D("","Your people, on calls, SMS and WhatsApp. Plus Slack, Teams and Outlook.","position:absolute;left:880px;top:610px;width:820px;font-weight:500;font-size:30px;line-height:1.4;color:#454959");$("s5").appendChild(B.s5);
+  // ---- S6
+  B.h6=words("Tap. / ~Nap.","big","position:absolute;left:1240px;top:340px;font-size:170px",$("s6"));
+  B.h6l=words("Step 2","kick","position:absolute;left:150px;top:420px",$("s6"));
+  B.h6s=D("","30 min, an hour, until a time, or on a schedule.","position:absolute;left:150px;top:470px;width:470px;font-weight:500;font-size:32px;line-height:1.35;color:#454959");$("s6").appendChild(B.h6s);
+  // ---- S7 noise absorbed
+  B.h7=words("Everything else / waits. ~Silently.","big","position:absolute;left:880px;top:180px;font-size:100px",$("s7"));
+  const n7=[["ig","rahul.k liked your reel","and 41 others"],["wa","Family (212 messages)","Chachi: lunch?"],["sw","Hungry?","Flat 50% off"],["li","New job alert","Senior engineer"],["am","Your order shipped","Arriving Thursday"]];
+  B.n7=n7.map(([k,ti,tx])=>{const d=D("lnt",`${ic(k)}<div><div class="ti">${ti}</div><div class="tx">${APPS[k][2]}</div></div>`);$("s7").appendChild(d);return d});
+  B.held7=D("","","position:absolute;left:886px;top:420px;font-weight:600;font-size:32px;color:#7D8296");$("s7").appendChild(B.held7);
+  // ---- S8 slack
+  B.h8=words("Work still / ^gets_through.","big","position:absolute;left:880px;top:180px;font-size:110px",$("s8"));
+  B.n8=D("lnt",`${ic("sl")}<div><div class="ti">Priya: prod is down</div><div class="tx">Slack · #incidents</div></div>`,"width:560px;z-index:20");$("s8").appendChild(B.n8);
+  B.lab8=D("","Rings on the alarm channel. DND can't block it.","position:absolute;left:886px;top:470px;white-space:nowrap;font-weight:600;font-size:32px;color:#D9761C");$("s8").appendChild(B.lab8);
+  B.wave8=[0,1,2].map(i=>{const d=D("abs",null,"width:300px;height:300px;margin:-150px 0 0 -150px;border-radius:50%;border:5px solid #F2994A");$("s8").appendChild(d);return d});
+  // ---- S9 Mom calls
+  B.k9=D("kick","2:14 PM · you're asleep","position:absolute;left:150px;top:300px");$("s9").appendChild(B.k9);
+  B.h9=words("Mom calls / on WhatsApp. / ^It_rings.","big","position:absolute;left:144px;top:350px;font-size:110px",$("s9"));
+  // ---- S10 repeat caller
+  B.h10=words("Called twice / in 15 min? / ^Probably_urgent.","big","position:absolute;left:150px;top:150px;font-size:96px",$("s10"));
+  const call=(lbl,st)=>D("card",`<div style="display:flex;align-items:center;gap:22px;padding:0 34px;height:100%">
+      <div style="width:70px;height:70px;border-radius:50%;display:grid;place-items:center;background:${st==="a"?"#F2994A":"#ECEBF3"}">${PHONE_I(st==="a"?"#fff":"#7D8296",34)}</div>
+      <div><div style="font-weight:700;font-size:34px;color:#12131A;letter-spacing:-.01em">+91 98••• •4410</div><div style="font-weight:600;font-size:22px;margin-top:4px;color:${st==="a"?"#D9761C":"#7D8296"}">${lbl}</div></div></div>`,"width:700px;height:150px");
+  B.c10a=call("1st call · 2:20 PM · held","m");B.c10b=call("2nd call · 2:24 PM · rings","a");
+  $("s10").append(B.c10a,B.c10b);
+  // ---- S11 welcome back
+  B.h11=words("Back? / See what / ~waited.","big","position:absolute;left:150px;top:290px;font-size:120px",$("s11"));
+  // ---- S12 proof tiles
+  B.h12=words("Small app. / ^No_excuses.","big","position:absolute;left:150px;top:380px;font-size:110px",$("s12"));
+  const tl=[["#E6E8FD",MOON("#5B67E8",30),"Your nap alarm still rings","Alarms-only DND."],
+            ["#FFF0E0",PHONE_I("#D9761C",28),"WhatsApp, SMS, calls","Telegram and Signal too."],
+            ["#E7F6EE",`<svg width="28" height="28" viewBox="0 0 24 24"><path fill="#2E9E62" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3Z"/></svg>`,"No internet permission","Nothing leaves your phone."],
+            ["#ECEBF3",`<svg width="28" height="28" viewBox="0 0 24 24"><path fill="#454959" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 10.4V6h-2v7.2l5 3 1-1.6-4-2.2Z"/></svg>`,"Schedules + a quick tile","Naps, nights, one tap."]];
+  B.tiles=tl.map(([bg,svg,a,b])=>{const d=D("tile",`<div class="k" style="background:${bg}">${svg}</div><div class="big">${a}</div><div class="s">${b}</div>`);$("s12").appendChild(d);return d});
+  // ---- S13 end card
+  const lg2=D("abs",`<svg width="190" height="190" viewBox="0 0 108 108" style="display:block"><path fill="#5B67E8" d="M58,32 A22,22 0 1,0 76,66 A18,18 0 1,1 58,32 Z"/></svg>`,"left:620px;top:250px");
+  $("s13").appendChild(lg2);B.logo2=lg2;
+  B.word2=words("Hush","big","position:absolute;left:830px;top:268px;font-size:150px;letter-spacing:-.06em",$("s13"));
+  B.sub13=words("Free & open source · Android 10+","","position:absolute;left:0;right:0;top:520px;text-align:center;font-weight:600;font-size:40px;color:#454959;letter-spacing:-.01em",$("s13"));
+  B.cta=D("abs",`<div style="display:flex;align-items:center;gap:18px;padding:26px 46px;border-radius:999px;background:#12131A;color:#fff;font-weight:700;font-size:44px;letter-spacing:-.01em;white-space:nowrap">
+    <svg width="44" height="44" viewBox="0 0 24 24"><path fill="#fff" d="M12 .5a11.5 11.5 0 0 0-3.6 22.4c.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.5 11.5 0 0 0 12 .5Z"/></svg>
+    github.com/himanshuSri24/hush</div>`,"");
+  $("s13").appendChild(B.cta);
+})();
+
+/* ---------------- phone screen state ---------------- */
+function layer(el,on,o=1){el.style.visibility=on?"visible":"hidden";el.style.opacity=o}
+function touch(t,at,x,y){const p=inv(t,at-.12,at+.35);if(p<=0||p>=1){B.touch.style.opacity=0;return}
+  const s=p<.25?lerp(.6,1,p/.25):lerp(1,1.6,(p-.25)/.75), o=p<.25?p/.25*.8:.8*(1-(p-.25)/.75);
+  B.touch.style.opacity=o;B.touch.style.transform=`translate(${x}px,${y}px) scale(${s})`}
+function sw(el,on){el.style.background=on?"#9AA8FF":"#1E2433";const i=el.querySelector("i");i.style.transform=`translateX(${on?18:0}px)`;i.style.background=on?"#0D1017":"#8B93A7"}
+
+/* ---------------- render ---------------- */
+function render(t){
+  const f=Math.round(t*FPS);
+  ["s1","s2","s3","s4","s5","s6","s7","s8","s9","s10","s11","s12","s13"].forEach(id=>$(id).style.visibility="hidden");
+  // default hides
+  [B.lock,B.miss,B.allow,B.now,B.alert].forEach(l=>layer(l,false));
+  B.sum.style.visibility="hidden";B.touch.style.opacity=0;
+  let ph=null, dot=null;   // phone pose, dot pose
+  let dnd=false, clock="2:01";
+
+  /* S1 0-2.5 noise */
+  if(scene("s1",t,0,2.5)){
+    const out=t>1.5;
+    rise(B.h1,t,-1,{out:1.42}); B.h1.style.visibility=t<1.7?"inherit":"hidden";
+    rise(B.h1b,t,1.55,{}); B.h1b.style.visibility=t>=1.5?"inherit":"hidden";
+    ph={x:1150+lerp(30,0,E.o3(inv(t,0,1))),y:90,r:lerp(-3,-1,inv(t,0,2.5)),s:1};
+    layer(B.lock,true);
+    B.lockN.forEach((n,i)=>{const a=i*.24;const p=E.back(inv(t,a,a+.32));
+      let y=(1-p)*-60, o=inv(t,a,a+.12);
+      const q=E.io(inv(t,1.7,2.3));          // DND: notifications dim + sink + shrink
+      n.style.opacity=o*(1-q*.62);n.style.transform=`translateY(${y+q*(10+i*4)}px) scale(${1-q*.04})`;
+      n.style.filter=q>.02?`grayscale(${q})`:"none";n.querySelector(".mute").style.opacity=q});
+    dnd=t>1.68;
+    if(t>1.6&&t<1.95) touch(t,1.68,360,30);
+  }
+  /* S2 2.5-4.5 missed */
+  if(scene("s2",t,2.5,4.5)){
+    rise(B.h2,t,2.55,{stag:.06,out:4.22}); B.k2.style.opacity=inv(t,2.6,2.9)*(1-inv(t,4.2,4.4));
+    const ex=E.i3(inv(t,4.2,4.5));
+    ph={x:1150,y:90+ex*700,r:-1+ex*8,s:1-ex*.1,b:ex*10};
+    layer(B.miss,true);dnd=true;clock="2:31";
+    B.missN.forEach((n,i)=>{const a=2.62+i*.3,p=E.back(inv(t,a,a+.3));n.style.opacity=inv(t,a,a+.1);n.style.transform=`translateY(${(1-p)*-50}px)`;
+      const hot=i===3?inv(t,a+.25,a+.6):0;n.style.borderColor=hot?`rgba(242,153,74,${hot})`:"#2A3142"});
+  }
+  /* S3 4.5-5 dead stop: just the dot */
+  if(scene("s3",t,4.5,5.0)){
+    const p=inv(t,4.5,5.0);dot={x:960,y:520,s:.8+.25*Math.sin(p*Math.PI),o:1};
+    B.c3.style.opacity=E.o3(inv(t,4.52,4.7));
+  }
+  /* S4 5-6.5 logo */
+  if(scene("s4",t,5.0,6.5)){
+    // dot flies to the logo's amber position, crescent wipes around it
+    const p=E.o4(inv(t,5.0,5.45));
+    const lx=560+74/108*300, ly=300+38/108*300;   // amber dot spot on the 300px logo
+    const ex=E.i3(inv(t,6.4,6.5));
+    dot={x:lerp(960,lx,p),y:lerp(520,ly,p)-ex*0,s:lerp(1.1,.92,p)*(1-ex),o:1-ex};
+    const cp=E.o4(inv(t,5.1,5.6));
+    S(B.logo,{o:cp*(1-ex),r:lerp(-70,0,cp),s:lerp(.6,1,cp)*(1-ex*.3)});
+    rise(B.word,t,5.2,{out:6.15}); rise(B.tag,t,5.45,{stag:.04,out:6.12});
+  }
+  /* S5 6.5-9.5 allowed */
+  if(scene("s5",t,6.5,9.5)){
+    const ent=E.o4(inv(t,6.5,6.78)), ex=E.i3(inv(t,9.35,9.5));
+    ph={x:lerp(240,300,ex)+0,y:lerp(900,90,ent),r:lerp(6,0,ent),s:1};
+    layer(B.allow,true);
+    B.k5.style.opacity=inv(t,6.6,6.9)*(1-ex); rise(B.h5,t,6.6,{out:9.3});
+    B.s5.style.opacity=inv(t,7.0,7.3)*(1-inv(t,9.3,9.45));B.s5.style.transform=`translateY(${(1-E.o3(inv(t,7.0,7.4)))*20}px)`;
+    B.pRows.forEach((r,i)=>{const a=7.0+i*.5,p=E.back(inv(t,a,a+.3));r.style.opacity=inv(t,a,a+.1);r.style.transform=`translateX(${(1-p)*-40}px)`});
+    B.aRows.forEach((r,i)=>{const a=7.9+i*.18,p=E.back(inv(t,a,a+.3));r.style.opacity=inv(t,a,a+.1);r.style.transform=`translateX(${(1-p)*-40}px)`});
+    sw($("rsw"),t>8.95); touch(t,8.95,392,604);
+    // the amber dot sits on Mom's avatar (carried)
+    const pm=E.o4(inv(t,7.0,7.3));
+    if(t<7.3) dot={x:lerp(960,240+12+20+19,pm),y:lerp(1200,90+12+70+136+19,pm),s:.6,o:pm};
+  }
+  /* S6 9.5-11.5 hush on */
+  if(scene("s6",t,9.5,11.5)){
+    const ent=E.o4(inv(t,9.5,9.95)), ex=E.i3(inv(t,11.2,11.5));
+    ph={x:lerp(300,740,ent)+lerp(0,-440,ex),y:90,r:0,s:1};
+    layer(B.now,true);
+    rise(B.h6,t,9.75,{out:11.2}); rise(B.h6l,t,9.8,{out:11.2});
+    B.h6s.style.opacity=inv(t,9.95,10.25)*(1-ex);
+    const tap1=10.15, tap2=10.6, on=t>=tap2;
+    [0,1,2,3].forEach(i=>{const c=$("d"+i),sel=(i===1&&t>=tap1)||(i===1&&on);c.style.background=sel?"#9AA8FF":"#161B25";c.style.color=sel?"#0D1017":"#E8EAF2"});
+    touch(t,tap1,148,656); touch(t,tap2,200,300);
+    const fill=E.o4(inv(t,tap2,tap2+.6));
+    $("arc").setAttribute("stroke-dashoffset",(879.6*(1-fill)).toFixed(1));
+    $("ringOff").style.opacity=1-inv(t,tap2,tap2+.2); $("ringOn").style.opacity=inv(t,tap2+.15,tap2+.4);
+    $("onPill").style.opacity=inv(t,tap2,tap2+.2); $("nowSub").textContent=on?"Only what matters gets through":"Good afternoon. Nap time?";
+    $("durs").style.opacity=1-inv(t,tap2,tap2+.25); $("stats").style.opacity=inv(t,tap2+.2,tap2+.5); $("back").style.opacity=inv(t,tap2+.3,tap2+.6);
+    $("mins").textContent="60";["held","thr","apps"].forEach(k=>$("st_"+k).textContent="0");
+    $("ringBox").style.transform=`scale(${on?1+.04*Math.sin(Math.min(1,(t-tap2)/.4)*Math.PI):1})`;
+    dnd=on; clock="2:01";
+  }
+  /* S7 11.5-14 noise absorbed */
+  if(scene("s7",t,11.5,14.0)){
+    const ent=E.o4(inv(t,11.5,11.9));
+    ph={x:lerp(300,240,ent),y:90,r:0,s:1};
+    layer(B.now,true);$("ringOn").style.opacity=1;$("ringOff").style.opacity=0;$("arc").setAttribute("stroke-dashoffset","20");$("onPill").style.opacity=1;
+    $("durs").style.opacity=0;$("stats").style.opacity=1;$("back").style.opacity=1;$("mins").textContent="58";$("ringBox").style.transform="";
+    rise(B.h7,t,11.6,{out:13.75});clock="2:03";$("nowSub").textContent="Only what matters gets through";
+    let held=0;
+    B.n7.forEach((n,i)=>{const a=11.95+i*.32;const fly=E.i2(inv(t,a,a+.42)), app=E.o3(inv(t,a-.25,a));
+      const sx=1150+(i%2)*300, sy=600+(i%3)*120; const tx=327, ty=719;
+      const x=lerp(sx,tx,fly)-260, y=lerp(sy,ty,fly)-48;
+      n.style.opacity=app*(1-inv(t,a+.3,a+.42)); n.style.transform=`translate(${x}px,${y}px) scale(${lerp(1,.35,fly)}) rotate(${(1-fly)*(i%2?3:-3)}deg)`;
+      n.style.filter=fly>.05?`grayscale(${fly})`:"none";
+      if(t>=a+.42) held+=[9,7,4,2,1][i]});
+    $("st_held").textContent=held;
+    const lastHit=Math.max(...B.n7.map((n,i)=>{const h=11.95+i*.32+.42;return t>=h?h:-9}));
+    const bump=lastHit>0?1+.35*Math.max(0,1-(t-lastHit)/.25):1;$("st_held").style.transform=`scale(${bump})`;$("st_held").style.transformOrigin="0 60%";$("st_apps").textContent=Math.min(5,Math.floor((t-12.0)/.32)+1)>0&&t>12.4?Math.min(5,Math.floor((t-12.37)/.32)+1):0;$("st_thr").textContent="0";
+    B.held7.textContent=held?`${held} held. Not one buzz.`:"";B.held7.style.opacity=inv(t,12.4,12.6)*(1-inv(t,13.7,13.9));
+    dnd=true;
+  }
+  /* S8 14-16.5 slack through */
+  if(scene("s8",t,14.0,16.5)){
+    ph={x:240,y:90,r:0,s:1};
+    layer(B.now,true);$("ringOn").style.opacity=1;$("ringOff").style.opacity=0;$("arc").setAttribute("stroke-dashoffset","40");$("onPill").style.opacity=1;
+    $("durs").style.opacity=0;$("stats").style.opacity=1;$("back").style.opacity=1;$("mins").textContent="51";$("st_held").textContent="23";$("st_apps").textContent="5";
+    rise(B.h8,t,14.05,{out:16.25});clock="2:10";$("nowSub").textContent="Only what matters gets through";
+    const a=14.35, fly=E.io(inv(t,a,a+.55));
+    const x=lerp(1200,240+220,fly)-280, y=lerp(820,90+140,fly)-48;
+    const hit=t>=a+.55;
+    B.n8.style.opacity=inv(t,a-.2,a)*(1-inv(t,16.3,16.42));
+    B.n8.style.transform=`translate(${x}px,${y}px) scale(${lerp(1,.86,fly)})`;
+    B.n8.style.boxShadow=hit?`0 0 0 ${4}px #F2994A,0 30px 60px -20px rgba(242,153,74,.6)`:"";
+    $("st_thr").textContent=hit?"1":"0";
+    B.wave8.forEach((w,i)=>{const p=inv(t,a+.55+i*.28,a+1.45+i*.28);w.style.opacity=p>0&&p<1?(1-p)*.8:0;
+      w.style.transform=`translate(${460}px,${540}px) scale(${.6+p*1.6})`});
+    B.lab8.style.opacity=inv(t,15.0,15.3)*(1-inv(t,16.2,16.4));
+    // phone shakes while ringing
+    if(hit&&t<15.6){const k=Math.sin((t-a)*90)*4*(1-inv(t,15.2,15.6));ph.r=k*.4;ph.x+=k}
+    dnd=true;
+  }
+  /* S9 16.5-19.5 mom calls */
+  if(scene("s9",t,16.5,19.5)){
+    const ent=E.o4(inv(t,16.5,16.95)), ex=0;
+    ph={x:lerp(240,1180,ent),y:lerp(90,70,ent),r:0,s:lerp(1,1.08,ent)};
+    layer(B.alert,true);
+    $("aName").textContent="Mom";$("aSub").textContent="is calling on WhatsApp";$("aWhy").textContent="Always-allowed person";
+    $("aWhy").style.color="#FFB86B";$("aAv").textContent="M";$("aBtn").textContent="Open WhatsApp";
+    ["aName","aSub","aWhy","aAv"].forEach(id=>$(id).style.opacity=1);$("aAv").style.background="#3A2C1C";$("aAv").style.color="#FFB86B";
+    B.k9.style.opacity=inv(t,16.6,16.9)*(1-inv(t,19.1,19.3));rise(B.h9,t,16.65,{stag:.05,out:19.15});
+    const p=((t-16.9)%1.1)/1.1;$("aPulse").style.opacity=t>16.9?(1-p)*.45:0;$("aPulse").style.transform=`scale(${1+p*.7})`;
+    const sh=Math.sin(t*95)*3*(t>16.95&&((t-16.95)%1.1)<.6?1:0);ph.r=sh*.5;ph.x+=sh;
+    dnd=true;clock="2:14";
+    // carried dot lands into the avatar
+    const dp=E.o4(inv(t,16.5,16.95));
+
+  }
+  /* S10 19.5-22 repeat caller */
+  if(scene("s10",t,19.5,22.0)){
+    rise(B.h10,t,19.55,{stag:.05,out:21.75});
+    const a1=19.6,a2=20.4;
+    const p1=E.back(inv(t,a1,a1+.4)),p2=E.back(inv(t,a2,a2+.4)),ex=E.i3(inv(t,21.7,22.0));
+    S(B.c10a,{x:150+(1-p1)*-120,y:560-ex*40,o:inv(t,a1,a1+.15)*(1-ex)*(t>a2+.3?.55:1),s:.97});
+    S(B.c10b,{x:150+(1-p2)*-120,y:735-ex*40,o:inv(t,a2,a2+.15)*(1-ex),s:1+.03*Math.sin(Math.max(0,t-a2-.4)*14)*(t<a2+1.2?1:0)});
+    B.c10b.style.boxShadow=t>a2+.35?"0 0 0 4px #F2994A,0 30px 70px -20px rgba(242,153,74,.55)":"";
+    // dot rides on the 2nd call's icon
+    // the phone stays: it rings for the 2nd call
+    ph={x:1180,y:70,r:0,s:1.08};layer(B.alert,true);$("aBtn").textContent="Answer";
+    const sw10=E.o3(inv(t,19.5,19.75));["aName","aSub","aWhy","aAv"].forEach(id=>$(id).style.opacity=sw10);
+    const ring2=t>=a2+.35;
+    $("aName").textContent="+91 98••• •4410";$("aSub").textContent=ring2?"is calling again":"is calling";
+    $("aWhy").textContent=ring2?"Called again within minutes":"Held. Not in your list.";
+    $("aWhy").style.color=ring2?"#FFB86B":"#8B93A7";$("aAv").textContent="#";
+    const pp=((t-a2-.35)%1.1)/1.1;$("aPulse").style.opacity=ring2?(1-pp)*.45:0;$("aPulse").style.transform=`scale(${1+pp*.7})`;
+    $("aAv").style.background=ring2?"#3A2C1C":"#1E2433";$("aAv").style.color=ring2?"#FFB86B":"#8B93A7";
+    if(ring2&&((t-a2-.35)%1.1)<.6){const sh=Math.sin(t*95)*3;ph.r=sh*.5;ph.x+=sh}
+    dnd=true;clock=ring2?"2:24":"2:20";
+  }
+  /* S11 22-24.5 welcome back */
+  if(scene("s11",t,22.0,24.5)){
+    const ent=E.o4(inv(t,22.0,22.5)), zm=E.io(inv(t,22.75,23.3)), ex=E.i3(inv(t,24.4,24.5));
+    ph={x:1180,y:lerp(70,lerp(90,240,zm),ent),r:0,s:lerp(1.08,lerp(1,1.32,zm),ent),b:ex*8};
+    $("phone").style.opacity=1-ex;
+    layer(B.now,true);
+    const tap=22.6, off=t>=tap;
+    $("ringOn").style.opacity=off?0:1;$("ringOff").style.opacity=off?1:0;$("arc").setAttribute("stroke-dashoffset",off?"879.6":"100");
+    $("onPill").style.opacity=off?0:1;$("durs").style.opacity=off?1:0;$("stats").style.opacity=off?0:1;$("back").style.opacity=off?0:1;
+    $("mins").textContent="2";$("st_held").textContent="23";$("st_thr").textContent="3";$("st_apps").textContent="5";$("ringBox").style.transform="";
+    $("nowSub").textContent=off?"Good afternoon. Nap time?":"Only what matters gets through";
+    touch(t,tap,200,722);
+    const xf=1-E.o3(inv(t,22.0,22.3));if(xf>0){layer(B.alert,true,xf)}
+    const sp=E.back(inv(t,tap+.2,tap+.6));B.sum.style.visibility=t>tap+.2?"visible":"hidden";B.sum.style.transform=`translateY(${(1-sp)*-160}px)`;
+    rise(B.h11,t,22.1,{out:24.2});
+    dnd=!off;clock="2:59";
+  }
+  /* S12 24.5-27 proof tiles */
+  if(scene("s12",t,24.5,27.0)){
+    rise(B.h12,t,24.5,{out:26.75});
+    const ex=E.i3(inv(t,26.7,27.0));
+    B.tiles.forEach((d,i)=>{const a=24.5+i*.1,p=E.back(inv(t,a,a+.4));
+      S(d,{x:880+(i%2)*(410+30),y:lerp(260,200,p)+Math.floor(i/2)*300-ex*40,o:inv(t,a,a+.12)*(1-ex),s:lerp(.92,1,p)})});
+  }
+  /* S13 27-30 end card */
+  if(scene("s13",t,27.0,30.0)){
+    const p=E.o4(inv(t,27.0,27.45));
+    S(B.logo2,{o:p,r:lerp(-60,0,p),s:lerp(.6,1,p)});
+    dot={x:620+74/108*190,y:250+38/108*190,s:lerp(0,.62,E.back(inv(t,27.25,27.6))),o:1};
+    rise(B.word2,t,27.15,{}); rise(B.sub13,t,27.45,{stag:.03});
+    const c=E.back(inv(t,27.75,28.2));
+    S(B.cta,{x:960-410,y:640+(1-c)*40,o:inv(t,27.75,27.95),s:lerp(.94,1,c)});
+    // gentle drift so the end card is not frozen
+    const dr=inv(t,28.2,30);B.cta.style.transform+=` scale(${1+dr*.015})`;
+  }
+
+  /* camera: every scene keeps moving (push-in + drift), reset on each cut */
+  const CUTS=[0,2.5,4.5,5,6.5,9.5,11.5,14,16.5,19.5,22,24.5,27,30];
+  let ci=0;while(ci<CUTS.length-2&&t>=CUTS[ci+1])ci++;
+  const cs=1.025+.025*Math.sin(t*.42-1.2);
+  $("cam").style.transform=`translate(${Math.sin(t*.31)*18}px,${Math.cos(t*.27)*9}px) scale(${cs})`;
+  if(ph){ph.y=(ph.y||0)+Math.sin(t*2.1)*7;ph.r=(ph.r||0)+Math.sin(t*1.3)*.6}
+  /* phone */
+  const P=$("phone");
+  if(ph){P.style.visibility="visible";if(!(t>=16.5&&t<19.5)&&!(t>=22&&t<24.5))P.style.opacity=1;S(P,{...ph,o:P.style.opacity===""?1:+P.style.opacity})}
+  else P.style.visibility="hidden";
+  $("clock").textContent=clock;
+  B.sbr.innerHTML=(dnd?MOON("#9AA8FF",16):"")+`<span style="font-size:15px">5G</span><span style="font-size:15px">78%</span>`;
+  /* dot */
+  const d=$("dot");
+  if(dot&&dot.o>0){d.style.visibility="visible";d.style.opacity=dot.o;d.style.transform=`translate(${dot.x}px,${dot.y}px) scale(${dot.s})`}
+  else d.style.visibility="hidden";
+  window.__f=f;
+}
+
+window.FPS=FPS;window.DURATION=DURATION;window.__ready=false;
+window.seekTo=t=>{render(Math.max(0,Math.min(DURATION-1/FPS,t)));return true};
+const q=new URLSearchParams(location.search);
+document.fonts.ready.then(()=>{render(q.has("t")?parseFloat(q.get("t")):0);requestAnimationFrame(()=>requestAnimationFrame(()=>{window.__ready=true}))});
+if(q.has("play")){document.body.classList.add("fit");document.documentElement.style.setProperty("--fit",Math.min(innerWidth/1920,innerHeight/1080));let t0=null;const loop=ts=>{if(t0===null)t0=ts;let t=(ts-t0)/1000;if(t>DURATION){t0=ts;t=0}render(t);requestAnimationFrame(loop)};requestAnimationFrame(loop)}
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+out/
+.frames/
+.chrome-profile/
+stills/
+music/
+fonts.css
+mix.wav
+music_only.wav
+render.log
+sfx/
